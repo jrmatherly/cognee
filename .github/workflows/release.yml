@@ -13,7 +13,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/cognee
 
 jobs:
   release-github:
@@ -36,7 +35,7 @@ jobs:
       - name: Create and push git tag
         id: create_tag
         run: |
-          # Extract version from pyproject.toml (not uv's version)
+          # Extract version from pyproject.toml (single source of truth)
           VERSION="$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)"
           TAG="v${VERSION}"
 
@@ -92,14 +91,19 @@ jobs:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: uv publish
 
-  release-docker-image:
+  # =============================================================================
+  # Backend Release (cognee-backend)
+  # =============================================================================
+  release-backend-image:
     needs: release-github
-    name: Release Docker Image from ${{ inputs.flavour }}
+    name: Release Backend Image from ${{ inputs.flavour }}
     permissions:
       contents: read
       packages: write
       id-token: write
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ github.repository_owner }}/cognee-backend
 
     steps:
       - name: Check out ${{ inputs.flavour }}
@@ -125,7 +129,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Dev Docker Image
+      - name: Build and push Dev Backend Image
         if: ${{ inputs.flavour == 'dev' }}
         id: build-dev
         uses: docker/build-push-action@v6
@@ -137,12 +141,13 @@ jobs:
           labels: |
             version=${{ needs.release-github.outputs.version }}
             flavour=${{ inputs.flavour }}
+            component=backend
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           provenance: true
           sbom: true
 
-      - name: Build and push Main Docker Image
+      - name: Build and push Main Backend Image
         if: ${{ inputs.flavour == 'main' }}
         id: build-main
         uses: docker/build-push-action@v6
@@ -156,6 +161,186 @@ jobs:
           labels: |
             version=${{ needs.release-github.outputs.version }}
             flavour=${{ inputs.flavour }}
+            component=backend
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign container image
+        env:
+          DIGEST: ${{ inputs.flavour == 'main' && steps.build-main.outputs.digest || steps.build-dev.outputs.digest }}
+          COSIGN_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        run: |
+          cosign sign --yes "${COSIGN_IMAGE}@${DIGEST}"
+
+  # =============================================================================
+  # Frontend Release (cognee-frontend)
+  # =============================================================================
+  release-frontend-image:
+    needs: release-github
+    name: Release Frontend Image from ${{ inputs.flavour }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ github.repository_owner }}/cognee-frontend
+
+    steps:
+      - name: Check out ${{ inputs.flavour }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.flavour }}
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          docker system prune -af
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Dev Frontend Image
+        if: ${{ inputs.flavour == 'dev' }}
+        id: build-dev
+        uses: docker/build-push-action@v6
+        with:
+          context: ./cognee-frontend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.release-github.outputs.version }}
+          labels: |
+            version=${{ needs.release-github.outputs.version }}
+            flavour=${{ inputs.flavour }}
+            component=frontend
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Build and push Main Frontend Image
+        if: ${{ inputs.flavour == 'main' }}
+        id: build-main
+        uses: docker/build-push-action@v6
+        with:
+          context: ./cognee-frontend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.release-github.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          labels: |
+            version=${{ needs.release-github.outputs.version }}
+            flavour=${{ inputs.flavour }}
+            component=frontend
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign container image
+        env:
+          DIGEST: ${{ inputs.flavour == 'main' && steps.build-main.outputs.digest || steps.build-dev.outputs.digest }}
+          COSIGN_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        run: |
+          cosign sign --yes "${COSIGN_IMAGE}@${DIGEST}"
+
+  # =============================================================================
+  # MCP Server Release (cognee-mcp)
+  # =============================================================================
+  release-mcp-image:
+    needs: release-github
+    name: Release MCP Image from ${{ inputs.flavour }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ github.repository_owner }}/cognee-mcp
+
+    steps:
+      - name: Check out ${{ inputs.flavour }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.flavour }}
+
+      - name: Free disk space
+        run: |
+          # Aggressive cleanup for large ML dependency builds
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo rm -rf /usr/share/swift /usr/local/graalvm /usr/local/.ghcup
+          sudo rm -rf /opt/hostedtoolcache/CodeQL /opt/hostedtoolcache/go
+          sudo rm -rf /usr/local/share/powershell /usr/share/az_*
+          docker system prune -af
+          df -h
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Dev MCP Image
+        if: ${{ inputs.flavour == 'dev' }}
+        id: build-dev
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./cognee-mcp/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.release-github.outputs.version }}
+          labels: |
+            version=${{ needs.release-github.outputs.version }}
+            flavour=${{ inputs.flavour }}
+            component=mcp
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Build and push Main MCP Image
+        if: ${{ inputs.flavour == 'main' }}
+        id: build-main
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./cognee-mcp/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.release-github.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          labels: |
+            version=${{ needs.release-github.outputs.version }}
+            flavour=${{ inputs.flavour }}
+            component=mcp
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           provenance: true

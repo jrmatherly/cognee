@@ -84,7 +84,7 @@ spec:
               echo "Database schema initialization complete"
       containers:
         - name: cognee
-          image: ghcr.io/jrmatherly/cognee:main
+          image: ghcr.io/jrmatherly/cognee-backend:main
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

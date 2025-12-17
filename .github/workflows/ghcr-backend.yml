@@ -24,7 +24,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/cognee
+  IMAGE_NAME: ${{ github.repository_owner }}/cognee-backend
 
 jobs:
   build-and-push:

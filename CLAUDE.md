@@ -136,9 +136,11 @@ docker-compose up
 
 | Component | Image |
 |-----------|-------|
-| Backend | `ghcr.io/jrmatherly/cognee:main` |
+| Backend | `ghcr.io/jrmatherly/cognee-backend:main` |
 | Frontend | `ghcr.io/jrmatherly/cognee-frontend:main` |
 | MCP Server | `ghcr.io/jrmatherly/cognee-mcp:main` |
+
+All three images use unified versioning from the root `pyproject.toml`. See [RELEASING.md](RELEASING.md) for release procedures.
 
 ## Kubernetes Deployment
 
@@ -339,6 +341,7 @@ MCP_URL=                   # MCP server URL for Next.js proxy (e.g., http://cogn
 
 | File | Purpose |
 |------|---------|
+| `RELEASING.md` | **Release procedures and versioning guide** |
 | `AGENTS.md` | Detailed build, test, and development commands |
 | `CONTRIBUTING.md` | Contribution guidelines and DCO |
 | `deployment/kubernetes/README.md` | Full Kubernetes deployment docs |
