@@ -74,11 +74,15 @@ ENV PYTHONUNBUFFERED=1
 ENV MCP_LOG_LEVEL=DEBUG
 ENV PYTHONPATH=/app
 
-# Create non-root user for security (UID 10000+ to avoid host UID conflicts)
+# Create non-root user for security (UID 10001 to match Kubernetes pod security context)
+# This enables running as a sidecar in pods with runAsUser: 10001
 # See: https://github.com/dnaprawa/dockerfile-best-practices
 RUN groupadd --gid 10001 cognee && \
-    useradd --uid 10000 --gid 10001 --no-create-home --shell /bin/false cognee && \
-    chown -R cognee:cognee /app
+    useradd --uid 10001 --gid 10001 --no-create-home --shell /bin/false cognee && \
+    chown -R cognee:cognee /app && \
+    # Create logs directory with proper permissions for non-root user
+    mkdir -p /app/.venv/lib/python3.12/site-packages/cognee/logs && \
+    chown -R cognee:cognee /app/.venv/lib/python3.12/site-packages/cognee/logs
 
 # Switch to non-root user
 USER cognee
