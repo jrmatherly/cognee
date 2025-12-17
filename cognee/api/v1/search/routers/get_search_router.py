@@ -8,6 +8,7 @@ from fastapi.encoders import jsonable_encoder
 
 from cognee.modules.search.types import SearchType, SearchResult, CombinedSearchResult
 from cognee.api.DTO import InDTO, OutDTO
+from cognee.api.shared.error_handling import create_error_response
 from cognee.modules.users.exceptions.exceptions import PermissionDeniedError
 from cognee.modules.users.models import User
 from cognee.modules.search.operations import get_history
@@ -141,6 +142,6 @@ def get_search_router() -> APIRouter:
         except PermissionDeniedError:
             return []
         except Exception as error:
-            return JSONResponse(status_code=409, content={"error": str(error)})
+            return create_error_response(error, status_code=500)
 
     return router

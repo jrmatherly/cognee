@@ -1,0 +1,127 @@
+#% if cognee_enabled | default(false) %#
+---
+# CloudNativePG PostgreSQL Cluster for Cognee
+# Uses PostgreSQL 18 minimal image with pgvector extension via ImageVolume
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cognee-db
+  namespace: ai-system
+  labels:
+    app.kubernetes.io/name: cognee
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: cognee
+spec:
+  instances: #{ cognee_db_instances | default(3) }#
+
+  # PostgreSQL 18 minimal image for extension_control_path support
+  imageName: ghcr.io/cloudnative-pg/postgresql:18-minimal-trixie
+
+  postgresql:
+    parameters:
+      # Performance tuning
+      max_connections: "200"
+      shared_buffers: "#{ cognee_db_shared_buffers | default('256MB') }#"
+      effective_cache_size: "#{ cognee_db_effective_cache_size | default('768MB') }#"
+      maintenance_work_mem: "128MB"
+      checkpoint_completion_target: "0.9"
+      wal_buffers: "16MB"
+      default_statistics_target: "100"
+      random_page_cost: "1.1"
+      effective_io_concurrency: "200"
+      work_mem: "4MB"
+      min_wal_size: "1GB"
+      max_wal_size: "4GB"
+      max_worker_processes: "4"
+      max_parallel_workers_per_gather: "2"
+      max_parallel_workers: "4"
+      max_parallel_maintenance_workers: "2"
+    # pgvector extension for RAG/knowledge functionality
+    extensions:
+      - name: pgvector
+        image:
+          reference: ghcr.io/cloudnative-pg/pgvector:0.8.1-18-trixie
+
+  # Storage
+  storage:
+    size: "#{ cognee_db_storage_size | default('10Gi') }#"
+    storageClass: "#{ cognee_db_storage_class | default('proxmox-csi') }#"
+
+#% if cognee_db_backup_enabled | default(false) %#
+  # S3-compatible backup configuration
+  backup:
+    barmanObjectStore:
+      destinationPath: "#{ cognee_db_backup_destination }#"
+      s3Credentials:
+        accessKeyId:
+          name: cnpg-backup-credentials
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: cnpg-backup-credentials
+          key: SECRET_ACCESS_KEY
+      wal:
+        compression: gzip
+    retentionPolicy: "#{ cognee_db_backup_retention | default('30d') }#"
+#% endif %#
+
+  # Bootstrap configuration
+  bootstrap:
+    initdb:
+      database: cognee
+      owner: cognee
+      secret:
+        name: cognee-db-credentials
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: "#{ cognee_db_resources_requests_cpu | default('500m') }#"
+      memory: "#{ cognee_db_resources_requests_memory | default('1Gi') }#"
+    limits:
+      cpu: "#{ cognee_db_resources_limits_cpu | default('2000m') }#"
+      memory: "#{ cognee_db_resources_limits_memory | default('4Gi') }#"
+
+  # High availability
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: preferred
+
+  # Monitoring
+  monitoring:
+    enablePodMonitor: #{ cognee_db_monitoring_enabled | default(true) | lower }#
+
+---
+# Database resource to declaratively manage cognee database with extensions
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: cognee-db-cognee
+  namespace: ai-system
+  labels:
+    app.kubernetes.io/name: cognee
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: cognee
+spec:
+  name: cognee
+  owner: cognee
+  cluster:
+    name: cognee-db
+  extensions:
+    - name: vector
+    - name: pg_trgm
+
+---
+# Database credentials secret (SOPS encrypted)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cognee-db-credentials
+  namespace: ai-system
+  labels:
+    app.kubernetes.io/name: cognee
+    app.kubernetes.io/component: database
+type: kubernetes.io/basic-auth
+stringData:
+  username: cognee
+  password: "#{ cognee_db_password }#"
+#% endif %#

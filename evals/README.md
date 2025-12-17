@@ -26,7 +26,6 @@ Repeated runs of QA evaluation on 24-item HotpotQA subset, comparing Mem0, Graph
 - Ensure Modal CLI is configured
 - Modular QA benchmark classes enable parallel execution on other platforms beyond Modal
 
-
 ## Running Benchmarks (Modal)
 
 Execute repeated runs via Modal apps:
@@ -57,9 +56,6 @@ The following charts visualize the benchmark results and performance comparisons
 ![Comprehensive Metrics Comparison](comprehensive_metrics_comparison.png)
 
 A comprehensive comparison of all evaluated systems across multiple metrics, showing Cognee's performance relative to Mem0, Graphiti, and LightRAG.
-
-
-
 
 #### Optimized Cognee Configurations
 ![Optimized Cognee Configurations](optimized_cognee_configurations.png)

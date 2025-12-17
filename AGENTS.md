@@ -129,4 +129,68 @@ MCP server and Frontend:
 
 Our GitHub Actions run the same ruff checks and pytest suites shown above (`.github/workflows/basic_tests.yml` and related workflows). Use the commands in this document locally to minimize CI surprises.
 
+## Container Builds & Registry
 
+This repository uses **GitHub Container Registry (GHCR)** for container images.
+
+### Images
+
+| Component | Image |
+|-----------|-------|
+| Backend | `ghcr.io/jrmatherly/cognee:main` |
+| Frontend | `ghcr.io/jrmatherly/cognee-frontend:main` |
+
+### Build Locally
+```bash
+# Backend
+docker build -t cognee:local .
+
+# Frontend
+docker build -t cognee-frontend:local ./cognee-frontend
+```
+
+### Workflows
+- `ghcr-backend.yml` - Builds backend on push to main/dev (paths: cognee/**)
+- `ghcr-frontend.yml` - Builds frontend on push to main/dev (paths: cognee-frontend/**)
+- `release.yml` - Manual release workflow (GitHub Release + PyPI + GHCR)
+
+Features: Multi-arch (amd64/arm64), Trivy scanning, Cosign signing, SBOM/provenance.
+
+## Kubernetes Deployment
+
+Kubernetes manifests are located in `deployment/kubernetes/`.
+
+### Directory Structure
+```
+deployment/kubernetes/
+├── base/           # Raw Kustomize manifests
+│   ├── backend/
+│   ├── frontend/
+│   └── database/   # CloudNativePG PostgreSQL
+└── flux/           # Flux GitOps templates (Jinja2)
+    └── app/
+```
+
+### Deploy with Kustomize
+```bash
+kubectl create namespace ai-system
+kubectl apply -k deployment/kubernetes/base/
+```
+
+### Deploy with Flux GitOps
+1. Copy `flux/` templates to your cluster repository
+2. Configure variables in `cluster.yaml` (see `flux/variables.md`)
+3. Flux reconciles automatically
+
+### Key Technologies
+- **Helm**: bjw-s app-template via OCIRepository
+- **Ingress**: Gateway API HTTPRoute (NOT Ingress)
+- **Database**: CloudNativePG PostgreSQL 18 with pgvector extension
+- **Secrets**: SOPS encryption with age
+
+### Jinja2 Template Syntax
+Custom delimiters to avoid Helm/Go conflicts:
+- Variables: `#{...}#` (e.g., `#{ cognee_version | default('main') }#`)
+- Blocks: `#%...%#` (e.g., `#% if cognee_enabled %#`)
+
+See `deployment/kubernetes/flux/README.md` for full documentation.

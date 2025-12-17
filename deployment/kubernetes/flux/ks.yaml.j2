@@ -1,0 +1,42 @@
+#| Cognee Flux Kustomization - Enable/disable via cognee_enabled variable |#
+#% if cognee_enabled | default(false) %#
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cognee
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: cilium
+      namespace: kube-system
+    - name: cloudnative-pg
+      namespace: cnpg-system
+    - name: envoy-gateway
+      namespace: network
+#% if neo4j_enabled | default(false) %#
+    - name: neo4j
+      namespace: storage
+#% endif %#
+#% if litellm_enabled | default(false) %#
+    - name: litellm
+      namespace: ai-system
+#% endif %#
+  interval: 1h
+  retryInterval: 1m
+  timeout: 15m
+  path: ./kubernetes/apps/ai-system/cognee/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    namespace: flux-system
+  targetNamespace: ai-system
+  wait: false
+  postBuild:
+    substituteFrom:
+      - kind: Secret
+        name: cluster-secrets
+      - kind: ConfigMap
+        name: cluster-settings
+#% endif %#

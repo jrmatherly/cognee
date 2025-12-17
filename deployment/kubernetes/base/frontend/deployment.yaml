@@ -1,0 +1,117 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cognee-frontend
+  labels:
+    app.kubernetes.io/name: cognee
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: cognee
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cognee
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cognee
+        app.kubernetes.io/component: frontend
+        app.kubernetes.io/part-of: cognee
+    spec:
+      serviceAccountName: cognee-frontend
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: frontend
+          image: ghcr.io/jrmatherly/cognee-frontend:main
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+              protocol: TCP
+          env:
+            # Backend API URL for Next.js server-side proxy (internal K8s service)
+            # This is NOT a NEXT_PUBLIC_ var - it's used by Next.js rewrites at runtime
+            - name: BACKEND_URL
+              value: "http://cognee-backend.ai-system.svc.cluster.local:8000"
+
+            # MCP API URL for Next.js server-side proxy (internal K8s service)
+            - name: MCP_URL
+              value: "http://cognee-mcp.ai-system.svc.cluster.local:8001"
+
+            # Auth0 configuration
+            - name: AUTH0_DOMAIN
+              valueFrom:
+                secretKeyRef:
+                  name: cognee-secrets
+                  key: AUTH0_DOMAIN
+            - name: AUTH0_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cognee-secrets
+                  key: AUTH0_CLIENT_ID
+            - name: AUTH0_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cognee-secrets
+                  key: AUTH0_CLIENT_SECRET
+            - name: AUTH0_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cognee-secrets
+                  key: AUTH0_SECRET
+            - name: APP_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-frontend-config
+                  key: APP_BASE_URL
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # Health probes
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 3
+            timeoutSeconds: 3
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 10001
+            readOnlyRootFilesystem: false
+            seccompProfile:
+              type: RuntimeDefault

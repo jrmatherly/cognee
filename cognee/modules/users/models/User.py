@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship, Mapped
 from .Principal import Principal
 from .UserTenant import UserTenant
 from .UserRole import UserRole
+from .UserGroup import UserGroup
 from .Role import Role
 from .Tenant import Tenant
 
@@ -18,7 +19,8 @@ class User(SQLAlchemyBaseUserTableUUID, Principal):
     id = Column(UUID, ForeignKey("principals.id", ondelete="CASCADE"), primary_key=True)
 
     # Foreign key to current Tenant (Many-to-One relationship)
-    tenant_id = Column(UUID, ForeignKey("tenants.id"))
+    # Index added for query performance on user-tenant joins
+    tenant_id = Column(UUID, ForeignKey("tenants.id"), index=True)
 
     # Many-to-Many Relationship with Roles
     roles: Mapped[list["Role"]] = relationship(
@@ -31,6 +33,13 @@ class User(SQLAlchemyBaseUserTableUUID, Principal):
     tenants: Mapped[list["Tenant"]] = relationship(
         "Tenant",
         secondary=UserTenant.__tablename__,
+        back_populates="users",
+    )
+
+    # Many-to-Many Relationship with Groups (for OIDC group-based access)
+    groups: Mapped[list["Group"]] = relationship(  # noqa: F821
+        "Group",
+        secondary=UserGroup.__tablename__,
         back_populates="users",
     )
 

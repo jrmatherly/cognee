@@ -26,6 +26,13 @@ class Tenant(Principal):
         foreign_keys=lambda: [Role.tenant_id],
     )
 
+    # One-to-Many relationship with Group (for OIDC group-based access)
+    groups = relationship(
+        "Group",
+        back_populates="tenant",
+        foreign_keys="Group.tenant_id",
+    )
+
     __mapper_args__ = {
         "polymorphic_identity": "tenant",
     }

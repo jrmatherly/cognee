@@ -1,4 +1,3 @@
-import os
 from functools import lru_cache
 from fastapi_users import models
 
@@ -7,6 +6,7 @@ from fastapi_users.authentication import (
     AuthenticationBackend,
 )
 
+from cognee.shared.security import get_jwt_secret
 from .api_bearer import api_bearer_transport, APIJWTStrategy
 
 
@@ -15,7 +15,7 @@ def get_api_auth_backend():
     transport = api_bearer_transport
 
     def get_jwt_strategy() -> JWTStrategy[models.UP, models.ID]:
-        secret = os.getenv("FASTAPI_USERS_JWT_SECRET", "super_secret")
+        secret = get_jwt_secret()
 
         return APIJWTStrategy(secret, lifetime_seconds=36000)
 

@@ -1,0 +1,275 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cognee-backend
+  labels:
+    app.kubernetes.io/name: cognee
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: cognee
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cognee
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cognee
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: cognee
+    spec:
+      serviceAccountName: cognee-backend
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # Pre-create schema objects to work around Alembic migration bug
+        - name: init-db-schema
+          image: postgres:16-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            runAsUser: 70
+          env:
+            - name: PGHOST
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: DB_HOST
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: DB_NAME
+            - name: PGUSER
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: DB_USERNAME
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cognee-secrets
+                  key: DB_PASSWORD
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Initializing database schema..."
+              psql -v ON_ERROR_STOP=0 <<'EOF'
+              -- Create enum type if not exists
+              DO $$
+              BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'pipelinerunstatus') THEN
+                  CREATE TYPE pipelinerunstatus AS ENUM ('DATASET_PROCESSING_STARTED', 'DATASET_PROCESSING_COMPLETED', 'DATASET_PROCESSING_ERROR');
+                END IF;
+              END $$;
+
+              -- Create extension if not exists
+              CREATE EXTENSION IF NOT EXISTS vector;
+
+              -- Ensure basic tables exist (Alembic will handle the rest)
+              CREATE TABLE IF NOT EXISTS alembic_version (
+                version_num VARCHAR(32) NOT NULL,
+                CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+              );
+              EOF
+              echo "Database schema initialization complete"
+      containers:
+        - name: cognee
+          image: ghcr.io/jrmatherly/cognee:main
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          env:
+            # Core settings
+            - name: ENVIRONMENT
+              value: "production"
+            - name: HOST
+              value: "0.0.0.0"
+            - name: DEBUG
+              value: "false"
+
+            # Database (PostgreSQL via CNPG)
+            - name: DB_PROVIDER
+              value: "postgres"
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: DB_HOST
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: DB_NAME
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cognee-secrets
+                  key: DB_PASSWORD
+
+            # Vector DB (pgvector in same PostgreSQL)
+            - name: VECTOR_DB_PROVIDER
+              value: "pgvector"
+
+            # Graph DB (Neo4j)
+            - name: GRAPH_DATABASE_PROVIDER
+              value: "neo4j"
+            - name: GRAPH_DATABASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: GRAPH_DATABASE_URL
+            - name: GRAPH_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cognee-secrets
+                  key: GRAPH_DATABASE_PASSWORD
+
+            # LLM (via LiteLLM proxy)
+            - name: LLM_PROVIDER
+              value: "openai"
+            - name: LLM_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: LLM_ENDPOINT
+            - name: LLM_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: LLM_MODEL
+            - name: LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cognee-secrets
+                  key: LLM_API_KEY
+
+            # Embedding (via LiteLLM proxy)
+            - name: EMBEDDING_PROVIDER
+              value: "openai"
+            - name: EMBEDDING_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: EMBEDDING_ENDPOINT
+            - name: EMBEDDING_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: EMBEDDING_MODEL
+
+            #############################################################
+            # Security Settings (v0.5.2+)
+            #############################################################
+
+            # JWT Secrets (REQUIRED - app won't start without these)
+            - name: FASTAPI_USERS_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cognee-secrets
+                  key: FASTAPI_USERS_JWT_SECRET
+            - name: FASTAPI_USERS_RESET_PASSWORD_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cognee-secrets
+                  key: FASTAPI_USERS_RESET_PASSWORD_TOKEN_SECRET
+            - name: FASTAPI_USERS_VERIFICATION_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cognee-secrets
+                  key: FASTAPI_USERS_VERIFICATION_TOKEN_SECRET
+
+            # Rate Limiting
+            - name: AUTH_RATE_LIMIT_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: AUTH_RATE_LIMIT_ENABLED
+            - name: AUTH_RATE_LIMIT_LOGIN_REQUESTS
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: AUTH_RATE_LIMIT_LOGIN_REQUESTS
+            - name: AUTH_RATE_LIMIT_LOGIN_WINDOW
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: AUTH_RATE_LIMIT_LOGIN_WINDOW
+
+            # SSRF Protection
+            - name: SSRF_PROTECTION_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: SSRF_PROTECTION_ENABLED
+            - name: ALLOW_PRIVATE_URLS
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: ALLOW_PRIVATE_URLS
+
+            # OAuth State TTL
+            - name: OAUTH_STATE_TTL
+              valueFrom:
+                configMapKeyRef:
+                  name: cognee-config
+                  key: OAUTH_STATE_TTL
+
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+
+          # Health probes
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: false
+            seccompProfile:
+              type: RuntimeDefault

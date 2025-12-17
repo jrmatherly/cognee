@@ -37,6 +37,7 @@ from cognee.api.v1.users.routers import (
     get_verify_router,
     get_users_router,
     get_visualize_router,
+    get_oidc_router,
 )
 from cognee.modules.users.methods.get_authenticated_user import REQUIRE_AUTHENTICATION
 
@@ -246,6 +247,12 @@ app.include_router(
     get_verify_router(),
     prefix="/api/v1/auth",
     tags=["auth"],
+)
+
+app.include_router(
+    get_oidc_router(),
+    prefix="/api/v1/auth/oidc",
+    tags=["auth", "oidc"],
 )
 
 app.include_router(get_add_router(), prefix="/api/v1/add", tags=["add"])

@@ -1,7 +1,7 @@
 > [!IMPORTANT]
 > **Note for contributors:** When branching out, create a new branch from the `dev` branch.
 
-# 🎉 Welcome to **cognee**! 
+# 🎉 Welcome to **cognee** 
 
 We're excited that you're interested in contributing to our project! 
 We want to ensure that every user and contributor feels welcome, included and supported to participate in cognee community. 
@@ -59,7 +59,6 @@ To help you find the most appropriate issues to work on, we use the following la
 
 Looking for a place to start? Try filtering for [good first issues](https://github.com/topoteretes/cognee/labels/good%20first%20issue)!
 
-
 ## 2. 🛠️ Development Setup
 
 ### Fork and Clone
@@ -100,15 +99,24 @@ python cognee/cognee/tests/test_library.py
 ## 4. 📤 Submitting Changes
 
 1. Install ruff on your system
-2. Run ```ruff format .``` and ``` ruff check ``` and fix the issues
-3. Push your changes:
-```shell
-git add .
-git commit -s -m "Description of your changes"
-git push origin feature/your-feature-name
-```
 
-2. Create a Pull Request:
+2. Run:
+
+   ```shell
+   ruff format .
+   ruff check
+   ``` 
+   and fix the issues
+
+3. Push your changes:
+
+   ```shell
+   git add .
+   git commit -s -m "Description of your changes"
+   git push origin feature/your-feature-name
+   ```
+
+4. Create a Pull Request:
    - Go to the [**cognee** repository](https://github.com/topoteretes/cognee) or [cognee community repository](https://github.com/topoteretes/cognee-community)
    - Click "Compare & Pull Request" and open a PR against dev branch
    - Fill in the PR template with details about your changes

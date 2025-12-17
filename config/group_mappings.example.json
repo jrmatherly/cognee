@@ -1,0 +1,18 @@
+{
+  "_comment": "Map OIDC groups (e.g., from Microsoft EntraID via Keycloak) to Cognee roles",
+  "_description": "Each key is an OIDC group name, values are arrays of Cognee role names to assign",
+
+  "IT-Admins": ["admin", "editor", "reader"],
+  "Data-Scientists": ["editor", "reader"],
+  "Business-Analysts": ["reader"],
+  "Cognee-PowerUsers": ["editor", "reader"],
+  "External-Contractors": ["reader"],
+
+  "_notes": [
+    "Group names must match exactly as they appear in the OIDC token claims",
+    "For Microsoft EntraID groups, this is typically the group display name or object ID",
+    "Multiple groups can map to the same role",
+    "Users will receive the union of all roles from all their groups",
+    "If no groups match, OIDC_DEFAULT_ROLE is assigned"
+  ]
+}

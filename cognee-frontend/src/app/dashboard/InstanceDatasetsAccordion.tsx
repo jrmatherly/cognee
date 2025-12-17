@@ -27,6 +27,9 @@ export default function InstanceDatasetsAccordion({ onDatasetsChange }: Instance
       }
       return checkCloudConnection()
         .then(setCloudCogneeConnected)
+        .catch(() => {
+          // Silently fail - not connected to cloud
+        })
     }, [setCloudCogneeConnected]);
 
   useEffect(() => {
@@ -53,6 +56,9 @@ export default function InstanceDatasetsAccordion({ onDatasetsChange }: Instance
     checkConnectionToCloudCognee(apiKeyValue)
       .then(() => {
         closeCloudConnectionModal();
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to connect to cloud:', error);
       });
   };
 

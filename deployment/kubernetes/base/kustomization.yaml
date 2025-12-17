@@ -1,0 +1,24 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ai-system
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  - backend/serviceaccount.yaml
+  - backend/configmap.yaml
+  # NOTE: secret.yaml contains placeholder values
+  # In production, use SOPS encryption, External Secrets Operator, or Sealed Secrets
+  - backend/secret.yaml
+  - backend/deployment.yaml
+  - backend/service.yaml
+  - backend/networkpolicy.yaml
+  - frontend/serviceaccount.yaml
+  - frontend/configmap.yaml
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+  - frontend/networkpolicy.yaml
+  - database/postgresql.yaml

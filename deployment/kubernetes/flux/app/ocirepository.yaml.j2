@@ -1,0 +1,13 @@
+#% if cognee_enabled | default(false) %#
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: app-template
+  namespace: ai-system
+spec:
+  interval: 15m
+  ref:
+    tag: "#{ cognee_app_template_version | default('4.5.0') }#"
+  url: oci://ghcr.io/bjw-s-labs/helm/app-template
+#% endif %#

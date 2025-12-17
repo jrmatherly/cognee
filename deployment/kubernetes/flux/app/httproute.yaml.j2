@@ -1,0 +1,67 @@
+#% if cognee_enabled | default(false) %#
+---
+# HTTPRoute for Cognee Frontend
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cognee-frontend
+  namespace: ai-system
+  labels:
+    app.kubernetes.io/name: cognee
+    app.kubernetes.io/component: frontend
+spec:
+  parentRefs:
+    - name: "#{ cognee_gateway | default('envoy-internal') }#"
+      namespace: network
+      sectionName: https
+  hostnames:
+    - "#{ cognee_frontend_hostname | default('cognee.example.com') }#"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: cognee-frontend
+          port: 3000
+---
+# HTTPRoute for Cognee Backend API
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cognee-backend
+  namespace: ai-system
+  labels:
+    app.kubernetes.io/name: cognee
+    app.kubernetes.io/component: backend
+spec:
+  parentRefs:
+    - name: "#{ cognee_api_gateway | default('envoy-internal') }#"
+      namespace: network
+      sectionName: https
+  hostnames:
+    - "#{ cognee_api_hostname | default('cognee-api.example.com') }#"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: cognee-backend
+          port: 8000
+---
+# ReferenceGrant to allow Gateway to reference services in ai-system namespace
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-gateway-to-cognee
+  namespace: ai-system
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: network
+  to:
+    - group: ""
+      kind: Service
+#% endif %#

@@ -17,7 +17,6 @@
   <a href="https://www.reddit.com/r/AIMemory/">Join r/AIMemory</a>
   </p>
 
-
   [![GitHub forks](https://img.shields.io/github/forks/topoteretes/cognee.svg?style=social&label=Fork&maxAge=2592000)](https://GitHub.com/topoteretes/cognee/network/)
   [![GitHub stars](https://img.shields.io/github/stars/topoteretes/cognee.svg?style=social&label=Star&maxAge=2592000)](https://GitHub.com/topoteretes/cognee/stargazers/)
   [![GitHub commits](https://badgen.net/github/commits/topoteretes/cognee)](https://GitHub.com/topoteretes/cognee/commit/)
@@ -29,7 +28,6 @@
 <a href="https://www.producthunt.com/posts/cognee?embed=true&utm_source=badge-top-post-badge&utm_medium=badge&utm_souce=badge-cognee" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=946346&theme=light&period=daily&t=1744472480704" alt="cognee - Memory&#0032;for&#0032;AI&#0032;Agents&#0032;&#0032;in&#0032;5&#0032;lines&#0032;of&#0032;code | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 
 <a href="https://trendshift.io/repositories/13955" target="_blank"><img src="https://trendshift.io/api/badge/repositories/13955" alt="topoteretes%2Fcognee | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-
 
 Build memory for Agents and query from any client that speaks MCP – in your terminal or IDE.
 
@@ -88,7 +86,6 @@ Please refer to our documentation [here](https://docs.cognee.ai/how-to-guides/de
 
 You can do more advanced configurations by creating .env file using our <a href="https://github.com/topoteretes/cognee/blob/main/.env.template">template.</a>
 To use different LLM providers / database configurations, and for more info check out our <a href="https://docs.cognee.ai">documentation</a>.
-
 
 ## 🐳 Docker Usage
 
@@ -238,7 +235,6 @@ docker run \
 **Note:** When running in API mode:
 - Database migrations are automatically skipped (API server handles its own DB)
 - Some features are limited (see [API Mode Limitations](#-api-mode))
-
 
 ## 🔗 MCP Client Configuration
 
@@ -440,7 +436,6 @@ Basic operations like `cognify`, `search`, `delete`, and `list_data` (all datase
 
 The MCP server exposes its functionality through tools. Call them from any MCP client (Cursor, Claude Desktop, Cline, Roo and more).
 
-
 ### Available Tools
 
 - **cognify**: Turns your data into a structured knowledge graph and stores it in memory
@@ -478,7 +473,6 @@ delete(data_id="data-uuid", dataset_id="dataset-uuid", mode="soft")
 delete(data_id="data-uuid", dataset_id="dataset-uuid", mode="hard")
 ```
 
-
 ## Development and Debugging
 
 ### Debugging
@@ -490,7 +484,7 @@ To use debugger, run:
 
 Open inspector with timeout passed:
     ```
-    http://localhost:5173?timeout=120000
+http://localhost:5173?timeout=120000
     ```
 
 To apply new changes while developing cognee you need to do:
@@ -523,7 +517,6 @@ We are committed to making open source an enjoyable and respectful experience fo
 <a href="https://github.com/topoteretes/cognee/graphs/contributors">
   <img alt="contributors" src="https://contrib.rocks/image?repo=topoteretes/cognee"/>
 </a>
-
 
 ## Star History
 

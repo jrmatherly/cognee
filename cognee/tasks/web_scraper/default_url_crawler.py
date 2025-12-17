@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import httpx
 
 from cognee.shared.logging_utils import get_logger
+from cognee.shared.security import validate_url_for_ssrf, SSRFError
 from cognee.tasks.web_scraper.types import UrlsToHtmls
 
 logger = get_logger()
@@ -394,8 +395,22 @@ class DefaultUrlCrawler:
         """
         if isinstance(urls, str):
             urls = [urls]
-        else:
+        elif not isinstance(urls, list):
             raise ValueError(f"Invalid urls type: {type(urls)}")
+
+        # Validate all URLs for SSRF before fetching
+        validated_urls = []
+        for url in urls:
+            try:
+                validate_url_for_ssrf(url)
+                validated_urls.append(url)
+            except SSRFError as e:
+                logger.warning(f"URL blocked by SSRF protection: {url} - {e}")
+                continue
+
+        if not validated_urls:
+            logger.warning("All URLs blocked by SSRF protection")
+            return {}
 
         async def _task(url: str):
             async with self._sem:
@@ -430,8 +445,8 @@ class DefaultUrlCrawler:
                     logger.error(f"Error processing {url}: {e}")
                     return url, ""
 
-        logger.info(f"Creating {len(urls)} async tasks for concurrent fetching")
-        tasks = [asyncio.create_task(_task(u)) for u in urls]
+        logger.info(f"Creating {len(validated_urls)} async tasks for concurrent fetching")
+        tasks = [asyncio.create_task(_task(u)) for u in validated_urls]
         results = {}
         completed = 0
         total = len(tasks)

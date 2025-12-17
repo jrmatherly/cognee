@@ -1,0 +1,12 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cognee-frontend-config
+  labels:
+    app.kubernetes.io/name: cognee
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: cognee
+data:
+  # External URL for the frontend (used for OAuth callbacks)
+  APP_BASE_URL: "https://cognee.example.com"
