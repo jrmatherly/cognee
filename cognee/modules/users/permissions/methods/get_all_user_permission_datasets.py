@@ -10,7 +10,11 @@ logger = get_logger()
 async def get_all_user_permission_datasets(user: User, permission_type: str) -> list[Dataset]:
     """
         Return a list of datasets the user has permission for.
-        If the user is part of a tenant, return datasets his roles have permission for.
+        This includes datasets accessible via:
+        - Direct user permissions
+        - Tenant membership
+        - Role assignments
+        - Group memberships (OIDC groups)
     Args:
         user
         permission_type
@@ -32,6 +36,15 @@ async def get_all_user_permission_datasets(user: User, permission_type: str) -> 
         roles = await user.awaitable_attrs.roles
         for role in roles:
             datasets.extend(await get_principal_datasets(role, permission_type))
+
+    # Get all datasets accessible by groups user is a member of (OIDC groups)
+    try:
+        groups = await user.awaitable_attrs.groups
+        for group in groups:
+            datasets.extend(await get_principal_datasets(group, permission_type))
+    except AttributeError:
+        # User model may not have groups attribute in older versions
+        logger.debug("User groups attribute not available, skipping group permissions")
 
     # Deduplicate datasets with same ID
     unique = {}

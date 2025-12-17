@@ -32,6 +32,11 @@ on:
 env:
   RUNTIME__LOG_LEVEL: ERROR
   ENV: 'dev'
+  # JWT secrets for testing (safe to use static value in CI since not exposed)
+  # Generate for production with: python -c "import secrets; print(secrets.token_urlsafe(64))"
+  FASTAPI_USERS_JWT_SECRET: "ci_test_jwt_secret_not_for_production_use_64_chars_minimum_aaaa"
+  FASTAPI_USERS_RESET_PASSWORD_TOKEN_SECRET: "ci_test_reset_secret_not_for_production_use_64_chars_minimum_aa"
+  FASTAPI_USERS_VERIFICATION_TOKEN_SECRET: "ci_test_verify_secret_not_for_production_use_64_chars_minimum_aa"
 
 jobs:
 

@@ -1,0 +1,312 @@
+#% if cognee_enabled | default(false) %#
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cognee
+  namespace: ai-system
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+  maxHistory: 3
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      strategy: rollback
+      retries: 3
+  values:
+    controllers:
+      # Backend Controller
+      backend:
+        replicas: #{ cognee_backend_replicas | default(1) }#
+        strategy: RollingUpdate
+        annotations:
+          reloader.stakater.com/auto: "true"
+        initContainers:
+          init-db:
+            image:
+              repository: postgres
+              tag: 16-alpine
+            env:
+              - name: PGHOST
+                value: "cognee-db-rw.ai-system.svc.cluster.local"
+              - name: PGPORT
+                value: "5432"
+              - name: PGDATABASE
+                value: "cognee"
+              - name: PGUSER
+                value: "cognee"
+              - name: PGPASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: DB_PASSWORD
+            command:
+              - /bin/sh
+              - -c
+              - |
+                echo "Initializing database schema..."
+                psql -v ON_ERROR_STOP=0 <<'EOF'
+                DO $$
+                BEGIN
+                  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'pipelinerunstatus') THEN
+                    CREATE TYPE pipelinerunstatus AS ENUM ('DATASET_PROCESSING_STARTED', 'DATASET_PROCESSING_COMPLETED', 'DATASET_PROCESSING_ERROR');
+                  END IF;
+                END $$;
+                CREATE EXTENSION IF NOT EXISTS vector;
+                EOF
+                echo "Database schema initialization complete"
+        containers:
+          main:
+            image:
+              repository: ghcr.io/jrmatherly/cognee
+              tag: "#{ cognee_version | default('main') }#"
+              pullPolicy: Always
+            env:
+              ENVIRONMENT: "production"
+              HOST: "0.0.0.0"
+              DEBUG: "false"
+              DB_PROVIDER: "postgres"
+              DB_HOST: "cognee-db-rw.ai-system.svc.cluster.local"
+              DB_PORT: "5432"
+              DB_NAME: "cognee"
+              DB_USERNAME: "cognee"
+              DB_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: DB_PASSWORD
+              VECTOR_DB_PROVIDER: "pgvector"
+              GRAPH_DATABASE_PROVIDER: "neo4j"
+              GRAPH_DATABASE_URL: "bolt://neo4j.storage.svc.cluster.local:7687"
+              GRAPH_DATABASE_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: GRAPH_DATABASE_PASSWORD
+              LLM_PROVIDER: "openai"
+              LLM_ENDPOINT: "http://litellm.ai-system.svc.cluster.local:4000/v1"
+              LLM_MODEL: "#{ cognee_llm_model | default('gpt-4o-mini') }#"
+              LLM_API_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: LLM_API_KEY
+              EMBEDDING_PROVIDER: "openai"
+              EMBEDDING_ENDPOINT: "http://litellm.ai-system.svc.cluster.local:4000/v1"
+              EMBEDDING_MODEL: "#{ cognee_embedding_model | default('text-embedding-3-large') }#"
+              #############################################################################
+              # JWT Security (REQUIRED - v0.5.2+)
+              #############################################################################
+              FASTAPI_USERS_JWT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: FASTAPI_USERS_JWT_SECRET
+              FASTAPI_USERS_RESET_PASSWORD_TOKEN_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: FASTAPI_USERS_RESET_PASSWORD_TOKEN_SECRET
+              FASTAPI_USERS_VERIFICATION_TOKEN_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: FASTAPI_USERS_VERIFICATION_TOKEN_SECRET
+              #############################################################################
+              # Rate Limiting - Authentication (v0.5.2+)
+              #############################################################################
+              AUTH_RATE_LIMIT_ENABLED: "#{ cognee_auth_rate_limit_enabled | default('true') }#"
+              AUTH_RATE_LIMIT_LOGIN_REQUESTS: "#{ cognee_auth_rate_limit_login_requests | default('5') }#"
+              AUTH_RATE_LIMIT_LOGIN_WINDOW: "#{ cognee_auth_rate_limit_login_window | default('300') }#"
+              AUTH_RATE_LIMIT_OAUTH_REQUESTS: "#{ cognee_auth_rate_limit_oauth_requests | default('10') }#"
+              AUTH_RATE_LIMIT_OAUTH_WINDOW: "#{ cognee_auth_rate_limit_oauth_window | default('60') }#"
+              AUTH_RATE_LIMIT_CALLBACK_REQUESTS: "#{ cognee_auth_rate_limit_callback_requests | default('5') }#"
+              AUTH_RATE_LIMIT_CALLBACK_WINDOW: "#{ cognee_auth_rate_limit_callback_window | default('60') }#"
+              #############################################################################
+              # OAuth State Storage (REQUIRED for multi-pod deployments)
+              #############################################################################
+              OAUTH_STATE_REDIS_URL: "#{ cognee_oauth_state_redis_url | default('') }#"
+              OAUTH_STATE_TTL: "#{ cognee_oauth_state_ttl | default('600') }#"
+              #############################################################################
+              # SSRF Protection (v0.5.2+)
+              #############################################################################
+              SSRF_PROTECTION_ENABLED: "#{ cognee_ssrf_protection_enabled | default('true') }#"
+              ALLOW_PRIVATE_URLS: "#{ cognee_allow_private_urls | default('false') }#"
+              #############################################################################
+              # OIDC/Keycloak Authentication (Optional)
+              #############################################################################
+              OIDC_ENABLED: "#{ cognee_oidc_enabled | default('false') }#"
+              OIDC_PROVIDER_NAME: "#{ cognee_oidc_provider_name | default('keycloak') }#"
+              OIDC_SERVER_METADATA_URL: "#{ cognee_oidc_server_metadata_url | default('') }#"
+              OIDC_BASE_URL: "#{ cognee_frontend_url | default('') }#"
+              OIDC_REDIRECT_URI: "#{ cognee_frontend_url | default('') }#/api/v1/auth/oidc/callback"
+              OIDC_SCOPES: "#{ cognee_oidc_scopes | default('openid profile email') }#"
+              OIDC_GROUP_CLAIM: "#{ cognee_oidc_group_claim | default('groups') }#"
+              OIDC_DEFAULT_ROLE: "#{ cognee_oidc_default_role | default('viewer') }#"
+              OIDC_AUTO_PROVISION_USERS: "#{ cognee_oidc_auto_provision_users | default('true') }#"
+              OIDC_CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: OIDC_CLIENT_ID
+              OIDC_CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: OIDC_CLIENT_SECRET
+            resources:
+              requests:
+                cpu: "#{ cognee_backend_resources_requests_cpu | default('200m') }#"
+                memory: "#{ cognee_backend_resources_requests_memory | default('512Mi') }#"
+              limits:
+                cpu: "#{ cognee_backend_resources_limits_cpu | default('2000m') }#"
+                memory: "#{ cognee_backend_resources_limits_memory | default('4Gi') }#"
+            probes:
+              startup:
+                enabled: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: 8000
+                  initialDelaySeconds: 10
+                  periodSeconds: 5
+                  failureThreshold: 30
+              liveness:
+                enabled: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: 8000
+                  initialDelaySeconds: 60
+                  periodSeconds: 30
+              readiness:
+                enabled: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: 8000
+                  periodSeconds: 10
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+              seccompProfile:
+                type: RuntimeDefault
+
+#% if cognee_frontend_enabled | default(true) %#
+      # Frontend Controller
+      frontend:
+        replicas: #{ cognee_frontend_replicas | default(1) }#
+        strategy: RollingUpdate
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          main:
+            image:
+              repository: ghcr.io/jrmatherly/cognee-frontend
+              tag: "#{ cognee_frontend_version | default('main') }#"
+              pullPolicy: Always
+            env:
+              # Backend API URL for Next.js server-side proxy (internal K8s service)
+              # This is NOT a NEXT_PUBLIC_ var - it's used by Next.js rewrites at runtime
+              BACKEND_URL: "http://cognee-backend.ai-system.svc.cluster.local:8000"
+              # MCP API URL for Next.js server-side proxy (internal K8s service)
+              MCP_URL: "http://cognee-mcp.ai-system.svc.cluster.local:8001"
+              AUTH0_DOMAIN:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: AUTH0_DOMAIN
+              AUTH0_CLIENT_ID:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: AUTH0_CLIENT_ID
+              AUTH0_CLIENT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: AUTH0_CLIENT_SECRET
+              AUTH0_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: cognee-secrets
+                    key: AUTH0_SECRET
+              APP_BASE_URL: "#{ cognee_frontend_url | default('https://cognee.example.com') }#"
+            resources:
+              requests:
+                cpu: "#{ cognee_frontend_resources_requests_cpu | default('100m') }#"
+                memory: "#{ cognee_frontend_resources_requests_memory | default('256Mi') }#"
+              limits:
+                cpu: "#{ cognee_frontend_resources_limits_cpu | default('500m') }#"
+                memory: "#{ cognee_frontend_resources_limits_memory | default('512Mi') }#"
+            probes:
+              startup:
+                enabled: true
+                spec:
+                  httpGet:
+                    path: /api/health
+                    port: 3000
+                  initialDelaySeconds: 5
+                  periodSeconds: 3
+                  failureThreshold: 20
+              liveness:
+                enabled: true
+                spec:
+                  httpGet:
+                    path: /api/health
+                    port: 3000
+                  initialDelaySeconds: 30
+                  periodSeconds: 30
+              readiness:
+                enabled: true
+                spec:
+                  httpGet:
+                    path: /api/health
+                    port: 3000
+                  periodSeconds: 10
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+              runAsNonRoot: true
+              runAsUser: 10001
+              runAsGroup: 10001
+              seccompProfile:
+                type: RuntimeDefault
+        pod:
+          securityContext:
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            runAsNonRoot: true
+#% endif %#
+
+    service:
+      backend:
+        controller: backend
+        ports:
+          http:
+            port: 8000
+            protocol: TCP
+#% if cognee_frontend_enabled | default(true) %#
+      frontend:
+        controller: frontend
+        ports:
+          http:
+            port: 3000
+            protocol: TCP
+#% endif %#
+
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+#% endif %#

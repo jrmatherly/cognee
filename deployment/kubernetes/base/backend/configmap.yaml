@@ -1,0 +1,64 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cognee-config
+  labels:
+    app.kubernetes.io/name: cognee
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: cognee
+data:
+  # Database configuration (CNPG service)
+  DB_HOST: "cognee-db-rw.ai-system.svc.cluster.local"
+  DB_NAME: "cognee"
+  DB_USERNAME: "cognee"
+
+  # Graph database (Neo4j)
+  GRAPH_DATABASE_URL: "bolt://neo4j.storage.svc.cluster.local:7687"
+
+  # LLM configuration (LiteLLM proxy)
+  LLM_ENDPOINT: "http://litellm.ai-system.svc.cluster.local:4000/v1"
+  LLM_MODEL: "gpt-4o-mini"
+
+  # Embedding configuration (LiteLLM proxy)
+  EMBEDDING_ENDPOINT: "http://litellm.ai-system.svc.cluster.local:4000/v1"
+  EMBEDDING_MODEL: "text-embedding-3-large"
+
+  # Frontend backend URL (for CORS and internal routing)
+  BACKEND_URL: "http://cognee-backend.ai-system.svc.cluster.local:8000"
+
+  #############################################################################
+  # Security Settings (v0.5.2+)
+  #############################################################################
+
+  # Rate Limiting - Authentication (protects against brute force)
+  AUTH_RATE_LIMIT_ENABLED: "true"
+  AUTH_RATE_LIMIT_LOGIN_REQUESTS: "5"
+  AUTH_RATE_LIMIT_LOGIN_WINDOW: "300"
+  AUTH_RATE_LIMIT_OAUTH_REQUESTS: "10"
+  AUTH_RATE_LIMIT_OAUTH_WINDOW: "60"
+  AUTH_RATE_LIMIT_CALLBACK_REQUESTS: "5"
+  AUTH_RATE_LIMIT_CALLBACK_WINDOW: "60"
+
+  # OAuth State Storage - REQUIRED for multi-pod deployments
+  # Without Redis, OAuth login will fail when requests hit different pods
+  # Set to your Redis service URL (e.g., redis://redis.ai-system.svc.cluster.local:6379/0)
+  # OAUTH_STATE_REDIS_URL: ""
+  OAUTH_STATE_TTL: "600"
+
+  # SSRF Protection (enabled by default for security)
+  SSRF_PROTECTION_ENABLED: "true"
+  ALLOW_PRIVATE_URLS: "false"
+
+  #############################################################################
+  # OIDC/Keycloak Authentication (Optional)
+  #############################################################################
+  OIDC_ENABLED: "false"
+  # OIDC_PROVIDER_NAME: "keycloak"
+  # OIDC_SERVER_METADATA_URL: "https://keycloak.example.com/realms/cognee/.well-known/openid-configuration"
+  # OIDC_BASE_URL: "https://cognee.example.com"
+  # OIDC_REDIRECT_URI: "https://cognee.example.com/api/v1/auth/oidc/callback"
+  # OIDC_SCOPES: "openid profile email"
+  # OIDC_GROUP_CLAIM: "groups"
+  # OIDC_DEFAULT_ROLE: "viewer"
+  # OIDC_AUTO_PROVISION_USERS: "true"

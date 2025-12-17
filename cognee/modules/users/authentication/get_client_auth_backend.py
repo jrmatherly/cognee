@@ -1,4 +1,3 @@
-import os
 from functools import lru_cache
 from fastapi_users import models
 
@@ -7,6 +6,7 @@ from fastapi_users.authentication import (
     AuthenticationBackend,
 )
 
+from cognee.shared.security import get_jwt_secret
 from .default import default_transport
 
 
@@ -17,7 +17,7 @@ def get_client_auth_backend():
     def get_jwt_strategy() -> JWTStrategy[models.UP, models.ID]:
         from .default.default_jwt_strategy import DefaultJWTStrategy
 
-        secret = os.getenv("FASTAPI_USERS_JWT_SECRET", "super_secret")
+        secret = get_jwt_secret()
 
         return DefaultJWTStrategy(secret, lifetime_seconds=3600)
 

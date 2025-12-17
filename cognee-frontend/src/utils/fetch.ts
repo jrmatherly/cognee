@@ -5,11 +5,13 @@ let numberOfRetries = 0;
 
 const isAuth0Enabled = process.env.USE_AUTH0_AUTHORIZATION?.toLowerCase() === "true";
 
-const backendApiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8000";
+// API URLs - use relative paths for Kubernetes deployment (proxied via Next.js rewrites)
+// In K8s, BACKEND_URL and MCP_URL env vars are set on the server side
+// The browser makes relative requests that Next.js proxies to the backend
+// For local development, these still work because rewrites fall back to localhost
+const backendApiUrl = "";  // Relative URL - proxied via Next.js rewrites in next.config.mjs
 
-const cloudApiUrl = process.env.NEXT_PUBLIC_CLOUD_API_URL || "http://localhost:8001";
-
-const mcpApiUrl = process.env.NEXT_PUBLIC_MCP_API_URL || "http://localhost:8001";
+const cloudApiUrl = process.env.NEXT_PUBLIC_CLOUD_API_URL || "";
 
 let apiKey: string | null = process.env.NEXT_PUBLIC_COGWIT_API_KEY || null;
 let accessToken: string | null = null;
@@ -74,10 +76,11 @@ export default async function fetch(url: string, options: RequestInit = {}, useC
 fetch.checkHealth = async () => {
   const maxRetries = 5;
   const retryDelay = 1000; // 1 second
-  
+
   for (let i = 0; i < maxRetries; i++) {
     try {
-      const response = await global.fetch(`${backendApiUrl.replace("/api", "")}/health`);
+      // Use the proxied health endpoint (routed via Next.js rewrites)
+      const response = await global.fetch("/backend/health");
       if (response.ok) {
         return response;
       }
@@ -90,12 +93,13 @@ fetch.checkHealth = async () => {
       await new Promise(resolve => setTimeout(resolve, retryDelay));
     }
   }
-  
+
   throw new Error("Backend server is not responding after multiple attempts");
 };
 
 fetch.checkMCPHealth = () => {
-  return global.fetch(`${mcpApiUrl.replace("/api", "")}/health`);
+  // Use the proxied MCP health endpoint (routed via Next.js rewrites)
+  return global.fetch("/mcp/health");
 };
 
 fetch.setApiKey = (newApiKey: string) => {

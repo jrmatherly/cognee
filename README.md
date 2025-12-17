@@ -1,11 +1,13 @@
 <div align="center">
-  <a href="https://github.com/topoteretes/cognee">
+  <a href="https://github.com/jrmatherly/cognee">
     <img src="https://raw.githubusercontent.com/topoteretes/cognee/refs/heads/dev/assets/cognee-logo-transparent.png" alt="Cognee Logo" height="60">
   </a>
 
   <br />
 
   Cognee - Accurate and Persistent AI Memory
+
+  > **Fork Notice**: This is a fork of [topoteretes/cognee](https://github.com/topoteretes/cognee) with Kubernetes deployment manifests and GHCR container builds.
 
   <p align="center">
   <a href="https://www.youtube.com/watch?v=1bezuvLwJmw&t=2s">Demo</a>
@@ -20,7 +22,6 @@
   .
   <a href="https://github.com/topoteretes/cognee-community">Community Plugins & Add-ons</a>
   </p>
-
 
   [![GitHub forks](https://img.shields.io/github/forks/topoteretes/cognee.svg?style=social&label=Fork&maxAge=2592000)](https://GitHub.com/topoteretes/cognee/network/)
   [![GitHub stars](https://img.shields.io/github/stars/topoteretes/cognee.svg?style=social&label=Star&maxAge=2592000)](https://GitHub.com/topoteretes/cognee/stargazers/)
@@ -57,11 +58,38 @@ Use your data to build personalized and dynamic memory for AI Agents. Cognee let
   <a href="https://www.readme-i18n.com/topoteretes/cognee?lang=zh">中文</a>
   </p>
 
-
 <div style="text-align: center">
   <img src="https://raw.githubusercontent.com/topoteretes/cognee/refs/heads/main/assets/cognee_benefits.png" alt="Why cognee?" width="50%" />
 </div>
 </div>
+
+## Fork Enhancements
+
+This fork adds the following features for production Kubernetes deployment:
+
+### Container Images (GHCR)
+
+| Component | Image |
+|-----------|-------|
+| Backend | `ghcr.io/jrmatherly/cognee:main` |
+| Frontend | `ghcr.io/jrmatherly/cognee-frontend:main` |
+
+### Kubernetes Deployment
+- **Kustomize base manifests** for direct `kubectl apply`
+- **Flux GitOps templates** (Jinja2) for Talos-based clusters
+- **CloudNativePG** PostgreSQL 18 with pgvector extension
+- **Gateway API** HTTPRoute (not legacy Ingress)
+- **Network policies** for security isolation
+
+See [`deployment/kubernetes/README.md`](deployment/kubernetes/README.md) for deployment instructions.
+
+### CI/CD Workflows
+- Multi-arch container builds (amd64/arm64)
+- Trivy vulnerability scanning with SARIF upload
+- Cosign keyless container signing
+- SBOM and provenance attestation
+
+---
 
 ## About Cognee
 
@@ -72,7 +100,7 @@ You can use Cognee in two ways:
 1. [Self-host Cognee Open Source](https://docs.cognee.ai/getting-started/installation), which stores all data locally by default.
 2. [Connect to Cognee Cloud](https://platform.cognee.ai/), and get the same OSS stack on managed infrastructure for easier development and productionization. 
 
-### Cognee Open Source (self-hosted):
+### Cognee Open Source (self-hosted)
 
 - Interconnects any type of data — including past conversations, files, images, and audio transcriptions
 - Replaces traditional RAG systems with a unified memory layer built on graphs and vectors
@@ -80,7 +108,7 @@ You can use Cognee in two ways:
 - Provides Pythonic data pipelines for ingestion from 30+ data sources
 - Offers high customizability through user-defined tasks, modular pipelines, and built-in search endpoints
 
-### Cognee Cloud (managed):
+### Cognee Cloud (managed)
 - Hosted web UI dashboard 
 - Automatic version updates 
 - Resource usage analytics
@@ -191,7 +219,6 @@ See Cognee in action:
 ### Cognee with Ollama
 
 [Watch Demo](https://github.com/user-attachments/assets/39672858-f774-4136-b957-1e2de67b8981)
-
 
 ## Community & Support
 

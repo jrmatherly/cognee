@@ -1,7 +1,7 @@
 [project]
 name = "cognee"
 
-version = "0.5.0"
+version = "0.5.8"
 description = "Cognee - is a library for enriching LLM context with a semantic layer for better understanding and reasoning."
 authors = [
     { name = "Vasilije Markovic" },
@@ -44,6 +44,7 @@ dependencies = [
     "fastapi>=0.116.2,<1.0.0",
     "python-multipart>=0.0.20,<1.0.0",
     "fastapi-users[sqlalchemy]>=14.0.1,<15.0.0",
+    "httpx-oauth>=0.16.0,<1.0.0",
     "structlog>=25.2.0,<26",
     "pympler>=1.1,<2.0.0",
     "onnxruntime<=1.22.1",
@@ -159,7 +160,7 @@ docling = ["docling>=2.54", "transformers>=4.55"]
 
 [project.urls]
 Homepage = "https://www.cognee.ai"
-Repository = "https://github.com/topoteretes/cognee"
+Repository = "https://github.com/jrmatherly/cognee"
 
 [project.scripts]
 cognee-cli = "cognee.cli._cognee:main"

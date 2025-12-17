@@ -7,7 +7,7 @@ from typing import Optional
 from typing import AsyncGenerator, List
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import joinedload
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound, ProgrammingError
 from sqlalchemy import NullPool, text, select, MetaData, Table, delete, inspect
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
@@ -486,6 +486,9 @@ class SQLAlchemyAdapter:
         """
         Create the database if it does not exist, ensuring necessary directories are in place
         for SQLite.
+
+        This method is idempotent - it handles concurrent execution from multiple pods
+        by catching "already exists" errors for tables and indexes.
         """
         if self.engine.dialect.name == "sqlite":
             db_directory = path.dirname(self.db_path)
@@ -497,7 +500,21 @@ class SQLAlchemyAdapter:
 
         async with self.engine.begin() as connection:
             if len(Base.metadata.tables.keys()) > 0:
-                await connection.run_sync(Base.metadata.create_all)
+                try:
+                    await connection.run_sync(Base.metadata.create_all)
+                except ProgrammingError as e:
+                    # Handle race condition when multiple pods start simultaneously
+                    # and try to create the same tables/indexes concurrently.
+                    # PostgreSQL raises "already exists" errors in this case.
+                    error_msg = str(e).lower()
+                    if "already exists" in error_msg:
+                        logger.info(
+                            "Database schema already exists (concurrent creation detected), "
+                            "continuing..."
+                        )
+                    else:
+                        # Re-raise if it's a different programming error
+                        raise
 
     async def delete_database(self):
         """

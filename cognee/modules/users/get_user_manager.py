@@ -1,4 +1,3 @@
-import os
 import re
 import json
 import uuid
@@ -9,16 +8,18 @@ from fastapi_users import BaseUserManager, UUIDIDMixin
 from fastapi_users.db import SQLAlchemyUserDatabase
 from contextlib import asynccontextmanager
 
+from cognee.shared.security import (
+    get_reset_password_token_secret,
+    get_verification_token_secret,
+)
 from .models import User
 from .get_user_db import get_user_db
 from .methods.get_user_by_email import get_user_by_email
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
-    reset_password_token_secret = os.getenv(
-        "FASTAPI_USERS_RESET_PASSWORD_TOKEN_SECRET", "super_secret"
-    )
-    verification_token_secret = os.getenv("FASTAPI_USERS_VERIFICATION_TOKEN_SECRET", "super_secret")
+    reset_password_token_secret = get_reset_password_token_secret()
+    verification_token_secret = get_verification_token_secret()
 
     # async def get(self, id: models.ID) -> models.UP:
     #     """

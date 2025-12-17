@@ -130,7 +130,7 @@ def get_frontend_download_info() -> Tuple[str, str]:
     clean_version = version.replace("-local", "")
 
     # Download from specific release tag to ensure version compatibility
-    download_url = f"https://github.com/topoteretes/cognee/archive/refs/tags/v{clean_version}.zip"
+    download_url = f"https://github.com/jrmatherly/cognee/archive/refs/tags/v{clean_version}.zip"
 
     return download_url, version
 

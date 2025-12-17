@@ -12,6 +12,7 @@ code_pipeline_output*/
 __pycache__/
 *.py[cod]
 *$py.class
+.ruff_cache/
 
 full_run.ipynb
 

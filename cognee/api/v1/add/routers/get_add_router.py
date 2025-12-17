@@ -10,6 +10,7 @@ from cognee.modules.users.methods import get_authenticated_user
 from cognee.shared.utils import send_telemetry
 from cognee.modules.pipelines.models import PipelineRunErrored
 from cognee.shared.logging_utils import get_logger
+from cognee.api.shared.error_handling import create_error_response
 from cognee import __version__ as cognee_version
 
 logger = get_logger()
@@ -88,9 +89,9 @@ def get_add_router() -> APIRouter:
             )
 
             if isinstance(add_run, PipelineRunErrored):
-                return JSONResponse(status_code=420, content=add_run.model_dump(mode="json"))
+                return JSONResponse(status_code=422, content=add_run.model_dump(mode="json"))
             return add_run.model_dump()
         except Exception as error:
-            return JSONResponse(status_code=409, content={"error": str(error)})
+            return create_error_response(error, status_code=500)
 
     return router

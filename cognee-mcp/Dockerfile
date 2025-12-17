@@ -43,6 +43,15 @@ COPY ./cognee-mcp /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-editable
 
+# CRITICAL: Replace CUDA PyTorch with CPU-only version to reduce image size by ~2-4GB
+# The MCP server uses remote LLMs (OpenAI, etc.) so CUDA is not needed for inference
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip uninstall nvidia-cublas-cu12 nvidia-cuda-cupti-cu12 nvidia-cuda-nvrtc-cu12 \
+        nvidia-cuda-runtime-cu12 nvidia-cudnn-cu12 nvidia-cufft-cu12 nvidia-curand-cu12 \
+        nvidia-cusolver-cu12 nvidia-cusparse-cu12 nvidia-nccl-cu12 nvidia-nvjitlink-cu12 \
+        nvidia-nvtx-cu12 triton 2>/dev/null || true && \
+    uv pip install torch --index-url https://download.pytorch.org/whl/cpu --force-reinstall
+
 FROM python:3.12-slim-bookworm
 
 RUN apt-get update && apt-get install -y \
@@ -64,6 +73,15 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV MCP_LOG_LEVEL=DEBUG
 ENV PYTHONPATH=/app
+
+# Create non-root user for security (UID 10000+ to avoid host UID conflicts)
+# See: https://github.com/dnaprawa/dockerfile-best-practices
+RUN groupadd --gid 10001 cognee && \
+    useradd --uid 10000 --gid 10001 --no-create-home --shell /bin/false cognee && \
+    chown -R cognee:cognee /app
+
+# Switch to non-root user
+USER cognee
 
 # Add labels for API mode usage
 LABEL org.opencontainers.image.description="Cognee MCP Server with API mode support"

@@ -17,6 +17,7 @@ from cognee.modules.graph.methods import get_formatted_graph_data
 from cognee.modules.users.get_user_manager import get_user_manager_context
 from cognee.infrastructure.databases.relational import get_relational_engine
 from cognee.modules.users.authentication.default.default_jwt_strategy import DefaultJWTStrategy
+from cognee.shared.security import get_jwt_secret
 from cognee.modules.pipelines.models.PipelineRunInfo import (
     PipelineRunCompleted,
     PipelineRunInfo,
@@ -29,6 +30,7 @@ from cognee.modules.pipelines.queues.pipeline_run_info_queues import (
 )
 from cognee.shared.logging_utils import get_logger
 from cognee.shared.utils import send_telemetry
+from cognee.api.shared.error_handling import create_error_response
 from cognee import __version__ as cognee_version
 
 logger = get_logger("api.cognify")
@@ -150,10 +152,10 @@ def get_cognify_router() -> APIRouter:
 
             # If any cognify run errored return JSONResponse with proper error status code
             if any(isinstance(v, PipelineRunErrored) for v in cognify_run.values()):
-                return JSONResponse(status_code=420, content=jsonable_encoder(cognify_run))
+                return JSONResponse(status_code=422, content=jsonable_encoder(cognify_run))
             return cognify_run
         except Exception as error:
-            return JSONResponse(status_code=409, content={"error": str(error)})
+            return create_error_response(error, status_code=500)
 
     @router.websocket("/subscribe/{pipeline_run_id}")
     async def subscribe_to_cognify_info(websocket: WebSocket, pipeline_run_id: str):
@@ -162,7 +164,7 @@ def get_cognify_router() -> APIRouter:
         access_token = websocket.cookies.get(os.getenv("AUTH_TOKEN_COOKIE_NAME", "auth_token"))
 
         try:
-            secret = os.getenv("FASTAPI_USERS_JWT_SECRET", "super_secret")
+            secret = get_jwt_secret()
 
             strategy = DefaultJWTStrategy(secret, lifetime_seconds=3600)
 
