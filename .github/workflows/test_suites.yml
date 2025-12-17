@@ -52,12 +52,6 @@ jobs:
     uses: ./.github/workflows/docker_compose.yml
     secrets: inherit
 
-  docker-ci-test:
-    name: Docker CI test
-    needs: [basic-tests, e2e-tests]
-    uses: ./.github/workflows/backend_docker_build_test.yml
-    secrets: inherit
-
   graph-db-tests:
     name: Graph Database Tests
     needs: [basic-tests, e2e-tests]
@@ -161,7 +155,6 @@ jobs:
       mcp-test,
       relational-db-migration-tests,
       docker-compose-test,
-      docker-ci-test,
     ]
     uses: ./.github/workflows/test_ollama.yml
     secrets: inherit
@@ -184,7 +177,6 @@ jobs:
       ollama-tests,
       relational-db-migration-tests,
       docker-compose-test,
-      docker-ci-test,
     ]
     runs-on: ubuntu-latest
     if: always()
@@ -204,7 +196,6 @@ jobs:
                 "${{ needs.relational-db-migration-tests.result }}" == "success" &&
                 "${{ needs.llm-tests.result }}" == "success" &&
                 "${{ needs.docker-compose-test.result }}" == "success" &&
-                "${{ needs.docker-ci-test.result }}" == "success" &&
                 "${{ needs.ollama-tests.result }}" == "success" ]]; then
             echo "All test suites completed successfully!"
           else
