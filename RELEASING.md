@@ -11,7 +11,7 @@ Cognee uses **unified versioning** across all components. All three container im
 When preparing a release, update the version in these files:
 
 | File | Field | Purpose |
-|------|-------|---------|
+| ------ | ------- | --------- |
 | `pyproject.toml` | `version = "X.Y.Z"` | **Primary source of truth** - release workflow reads this |
 | `cognee-frontend/package.json` | `"version": "X.Y.Z"` | Frontend package version (should match) |
 | `cognee-mcp/pyproject.toml` | `version = "X.Y.Z"` | MCP server package version (should match) |
@@ -60,7 +60,7 @@ The workflow will:
 ### Container Image Tags
 
 | Branch | Tags Applied |
-|--------|-------------|
+| -------- | ------------- |
 | `main` | `X.Y.Z`, `latest` |
 | `dev` | `X.Y.Z` only |
 
@@ -69,7 +69,7 @@ The workflow will:
 ### Automatic Builds (on push)
 
 | Workflow | Image | Triggers |
-|----------|-------|----------|
+| ---------- | ------- | ---------- |
 | `ghcr-backend.yml` | `cognee-backend` | Changes to `cognee/`, `Dockerfile`, `pyproject.toml`, `uv.lock` |
 | `ghcr-frontend.yml` | `cognee-frontend` | Changes to `cognee-frontend/` |
 | `ghcr-mcp.yml` | `cognee-mcp` | Changes to `cognee-mcp/`, `cognee/`, `alembic/`, `pyproject.toml`, `uv.lock` |

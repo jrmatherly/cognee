@@ -136,7 +136,7 @@ This repository uses **GitHub Container Registry (GHCR)** for container images.
 ### Images
 
 | Component | Image |
-|-----------|-------|
+| --------- | ----- |
 | Backend | `ghcr.io/jrmatherly/cognee:main` |
 | Frontend | `ghcr.io/jrmatherly/cognee-frontend:main` |
 

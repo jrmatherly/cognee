@@ -70,7 +70,7 @@ This fork adds the following features for production Kubernetes deployment:
 ### Container Images (GHCR)
 
 | Component | Image |
-|-----------|-------|
+| --------- | ----- |
 | Backend | `ghcr.io/jrmatherly/cognee:main` |
 | Frontend | `ghcr.io/jrmatherly/cognee-frontend:main` |
 

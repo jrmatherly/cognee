@@ -52,7 +52,7 @@ cognee/
 ## Key Modules (`cognee/modules/`)
 
 | Module | Purpose |
-|--------|---------|
+| -------- | --------- |
 | `graph/` | Graph database operations and knowledge graph management |
 | `retrieval/` | Information retrieval and search |
 | `ontology/` | Ontology resolution and management |
@@ -126,7 +126,7 @@ docker-compose up
 ## Default Configuration
 
 | Component | Default | Alternatives |
-|-----------|---------|--------------|
+| --------- | ------- | ------------ |
 | Relational DB | SQLite | PostgreSQL |
 | Vector DB | LanceDB | pgvector, Qdrant, Weaviate, Milvus, ChromaDB |
 | Graph DB | Kuzu | Neo4j, Neptune |
@@ -135,7 +135,7 @@ docker-compose up
 ## Container Images (GHCR)
 
 | Component | Image |
-|-----------|-------|
+| --------- | ----- |
 | Backend | `ghcr.io/jrmatherly/cognee-backend:main` |
 | Frontend | `ghcr.io/jrmatherly/cognee-frontend:main` |
 | MCP Server | `ghcr.io/jrmatherly/cognee-mcp:main` |
@@ -188,14 +188,14 @@ Browser → Next.js Frontend (K8s) → Backend API (K8s)
 **Frontend Environment Variables (K8s):**
 
 | Variable | Value | Purpose |
-|----------|-------|---------|
+| ---------- | ------- | --------- |
 | `BACKEND_URL` | `http://cognee-backend.ai-system.svc.cluster.local:8000` | Backend API proxy target |
 | `MCP_URL` | `http://cognee-mcp.ai-system.svc.cluster.local:8001` | MCP server proxy target |
 
 **Proxy Routes:**
 
 | Browser Path | Proxied To |
-|--------------|------------|
+| -------------- | ------------ |
 | `/api/v1/*` | `${BACKEND_URL}/api/v1/*` |
 | `/backend/health` | `${BACKEND_URL}/health` |
 | `/mcp/health` | `${MCP_URL}/health` |
@@ -203,7 +203,7 @@ Browser → Next.js Frontend (K8s) → Backend API (K8s)
 ## CI/CD Workflows
 
 | Workflow | File | Purpose |
-|----------|------|---------|
+| ---------- | ------ | --------- |
 | Backend Build | `ghcr-backend.yml` | Build/push backend container on push to main/dev |
 | Frontend Build | `ghcr-frontend.yml` | Build/push frontend container on push to main/dev |
 | MCP Server Build | `ghcr-mcp.yml` | Build/push MCP server container on push to main/dev |
@@ -218,7 +218,7 @@ Features: Multi-arch (amd64/arm64), Trivy scanning, Cosign signing, SBOM/provena
 Base URL: `http://localhost:8000/api/v1`
 
 | Endpoint | Method | Description |
-|----------|--------|-------------|
+| ---------- | -------- | ------------- |
 | `/add` | POST | Add documents to cognee |
 | `/cognify` | POST | Generate knowledge graph from added data |
 | `/memify` | POST | Add memory algorithms to the graph |
@@ -340,7 +340,7 @@ MCP_URL=                   # MCP server URL for Next.js proxy (e.g., http://cogn
 ## Important Files
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | `RELEASING.md` | **Release procedures and versioning guide** |
 | `AGENTS.md` | Detailed build, test, and development commands |
 | `CONTRIBUTING.md` | Contribution guidelines and DCO |
