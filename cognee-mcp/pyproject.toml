@@ -1,6 +1,6 @@
 [project]
 name = "cognee-mcp"
-version = "0.5.9"
+version = "0.5.10"
 description = "Cognee MCP server"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -8,7 +8,7 @@ requires-python = ">=3.10"
 dependencies = [
     # For local development, use: cognee[postgres,docs,neo4j] @ file:../
     # For production, use minimum version constraint matching the monorepo version
-    "cognee[postgres,docs,neo4j]>=0.5.9",
+    "cognee[postgres,docs,neo4j]>=0.5.10",
     "fastmcp>=2.10.0,<3.0.0",
     "mcp>=1.12.0,<2.0.0",
     "uv>=0.6.3,<1.0.0",
