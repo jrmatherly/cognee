@@ -6,7 +6,7 @@
 
 Cognee is an open-source platform that transforms raw data into persistent and dynamic AI memory for agents. It combines vector search with graph databases to make documents both searchable by meaning and connected by relationships. The core concept replaces traditional RAG (Retrieval-Augmented Generation) with scalable ECL (Extract, Cognify, Load) pipelines.
 
-**Current Version**: 0.5.11 (forked from topoteretes/cognee)
+**Current Version**: 0.5.12 (forked from topoteretes/cognee)
 
 ## Quick Start
 
